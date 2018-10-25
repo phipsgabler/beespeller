@@ -7,7 +7,10 @@ import re
 
 
 MW_API_URL = 'https://www.dictionaryapi.com/api/v3/references/collegiate/json/'
-FORMATTING_TOKENS = re.compile('\{([\w/| ])+\}')
+TOKEN_FORMAT_NAMES = ['b', 'bc', 'inf', 'it', 'ldquo', 'rdquo', 'sc', 'sup', 'gloss', 'parahw',
+                      'phrase', 'qword', 'wi', 'dx', 'dx_def', 'dx_ety', 'ma', 'ds']
+FORMATTING_TOKENS = '|'.join(f'(\\{{{t}\\}})|(\\{{/{t}\\}})' for t in TOKEN_FORMAT_NAMES)
+FORMATTING_TOKENS_RE = re.compile(FORMATTING_TOKENS)
 
 def lookup(key, query):
     r = requests.get(MW_API_URL + query, params = {'key': key})
@@ -22,17 +25,27 @@ def extract_first_definition(answer):
     if isinstance(first_entry, str):
         return '(no definition found)'
     else:
-        first_def = first_entry['def'][0]
-        first_sense = first_def['sseq'][0][0]
-        if first_sense[0] == 'pseq': first_sense = first_sense[1][0]
+        first_sseq = first_entry['def'][0]['sseq']
+        
+        if first_sseq[0][0][0] == 'pseq':
+            first_sseq = first_sseq[0][0][1][0]
+
+        if first_sseq[0][0][0] != 'bs':
+            first_sense = first_sseq[0][0]
+        else:
+            first_sense = first_sseq[0][1]
         
         try:
             defining_text = first_sense[1]['dt'][0][1]
         except:
-            print(first_entry)
+            print(first_sseq)
+            print(first_sense)
             raise
 
-        return re.sub(FORMATTING_TOKENS, '', defining_text)
+        try:
+            return FORMATTING_TOKENS_RE.sub('', defining_text)
+        except:
+            print(defining_text)
 
 
 def get_key():
@@ -46,6 +59,9 @@ def get_key():
 
 
 if __name__ == '__main__':
+    # print(REMOVED_TOKENS)
+    # 1/0
+    
     api_key = get_key()
     
     mandatory_letter = argv[1].lower()
