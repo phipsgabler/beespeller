@@ -1,0 +1,3 @@
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
+
+Trying to solve some NY Times puzzles...
